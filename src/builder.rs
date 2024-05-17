@@ -1,42 +1,46 @@
 use std::marker::PhantomData;
 
 
-pub struct Global;
-pub struct Job;
-pub struct Stage;
+pub(crate) struct Global;
+pub(crate) struct Job;
+pub(crate) struct Stage;
 
-trait BuilderState {}
+pub(crate) trait BuilderState {}
 
 impl BuilderState for Global {}
 impl BuilderState for Job {}
 impl BuilderState for Stage {}
 
 #[derive(Debug, Clone)]
-pub struct YamlBuilder<B: BuilderState> {
+pub(crate) struct YamlBuilder<B: BuilderState> {
     // Zero Sized Marker that exist only at compile time
     _marker: PhantomData<B>,
     yaml : String,
 }
 
-impl YamlBuilder<Job> {
+impl YamlBuilder<Global> {
+    pub(crate) fn stage(&mut self, name: &str) -> &mut Self {
+        self.write("stages:")
+            .new_line()
+            .indent(1)
+            .write("- ")
+            .write(name)
+            .new_line();
+        self
+    }
+}
 
-    pub(crate) fn step(&mut self, task: &str) -> &mut Self {
+impl YamlBuilder<Job> {
+    pub(crate) fn script(&mut self, task: &str) -> &mut Self {
         self.indent(1)
-            .write("step: ")
+            .write("script: ")
             .write(task)
             .new_line();
         self
     }
 
     pub(crate) fn echo(&mut self, msg: &str) -> &mut Self {
-        self.step(&format!("echo \"{}\"", msg))
-    }
-
-    pub(crate) fn done(&mut self) -> YamlBuilder<Global> {
-        YamlBuilder {
-            _marker: PhantomData,
-            yaml: self.yaml.clone()
-        }
+        self.script(&format!("echo \"{}\"", msg))
     }
 }
 
@@ -57,8 +61,12 @@ impl<B: BuilderState> YamlBuilder<B> {
         Ok(())
     }
 
-    pub(crate) fn job(&mut self) -> YamlBuilder<Job> {
+    pub(crate) fn job(&mut self, name: &str) -> YamlBuilder<Job> {
         self.write("job:")
+            .new_line()
+            .indent(1)
+            .write("name: ")
+            .write(name)
             .new_line();
         YamlBuilder {
             _marker: PhantomData,
@@ -86,6 +94,7 @@ impl<B: BuilderState> YamlBuilder<B> {
         self
     }
 
+    #[allow(dead_code)]
     pub(crate) fn debug(&self) -> &Self {
         println!("{}", self.yaml);
 

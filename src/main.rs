@@ -7,9 +7,10 @@ fn main() {
     let mut builder = YamlBuilder::<Global>::new();
 
     let res = builder
-        .job()
+        .stage("Build")
+        .job("Hello Job")
             .echo("Job 1")
-        .job()
+        .job("Another Hello")
             .echo("Job 2")
         .write_to_file("test.yml");
 
