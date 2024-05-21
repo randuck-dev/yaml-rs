@@ -1,22 +1,22 @@
 mod builder;
 
-use builder::{Global, YamlBuilder};
+use builder::{Global, Job, PipelineBuilder};
 
 fn main() {
+    let mut builder = PipelineBuilder::<Global>::new();
 
-    let mut builder = YamlBuilder::<Global>::new();
+    let result = builder
+        .trigger("main")
+        .pool("rust_meetup", |p| p.image("ubuntu:latest"))
+        .stage("Create Artifact".into(), |s| {
+            s.add_job(Job::new("Compile"));
+            s.add_job(Job::new("Test"));
+            s.add_job(Job::new("Apply DB Migrations"));
+        })
+        .compile();
 
-    let res = builder
-        .stage("Build")
-        .job("Hello Job")
-            .echo("Job 1")
-        .job("Another Hello")
-            .echo("Job 2")
-        .write_to_file("test.yml");
-
-    match res {
-        Ok(_) => println!("File written successfully"),
-        Err(e) => println!("Error: {}", e)
+    match result {
+        Some(pipeline) => println!("{}", pipeline),
+        None => println!("Failed to build pipeline"),
     }
 }
-
